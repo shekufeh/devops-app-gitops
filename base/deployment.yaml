@@ -17,7 +17,7 @@ spec:
         - name: gitlab-registry
       containers:
         - name: devops-app
-          image: gitlab.home.arpa:5050/devops-assignment/devops-app:eb5cddd242336b65e804dac4d70192beb51a1864
+          image: 192.168.130.20:5050/devops-assignment/devops-app:eb5cddd242336b65e804dac4d70192beb51a1864
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
