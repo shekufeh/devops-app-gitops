@@ -18,7 +18,7 @@ spec:
       containers:
         - name: devops-app
           #image: 192.168.130.20:5050/devops-assignment/devops-app:eb5cddd242336b65e804dac4d70192beb51a1864
-          image: gitlab.home.arpa:5050/devops-assignment/devops-app:5160d2c6a4bf4a67946778035c3d91ee4b7585eb
+          image: gitlab.home.arpa:5050/devops-assignment/devops-app:6e7758e8358ac9cd760858bebd8bcf2c88d000c7
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
