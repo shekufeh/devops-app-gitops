@@ -1,0 +1,52 @@
+
+stages:
+  - test
+  - build
+  - push
+
+variables:
+  IMAGE_TAG: "$CI_COMMIT_SHA"
+  DOCKER_TLS_CERTDIR: ""
+
+test_html:
+  stage: test
+  script:
+    - echo "Checking HTML application..."
+    - test -s html/index.html
+    - grep -qi "<html" html/index.html
+    - echo "HTML validation passed!"
+
+build_image:
+  stage: build
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE:$IMAGE_TAG" .
+    - docker image inspect "$CI_REGISTRY_IMAGE:$IMAGE_TAG"
+
+push_image:
+  stage: push
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" --password-stdin
+    - docker push "$CI_REGISTRY_IMAGE:$IMAGE_TAG"
+    - docker logout "$CI_REGISTRY"
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+
+
+
+update_gitops:
+  stage: push
+  before_script:
+    - sudo apt-get update
+    - sudo apt-get install -y git
+  script:
+    - git clone "http://${GITOPS_USER}:${GITOPS_TOKEN}@gitlab.home.arpa/devops-assignment/devops-app-gitops.git"
+    - cd devops-app-gitops
+    - sed -i "s|REPLACE_IMAGE|${CI_REGISTRY_IMAGE}:${IMAGE_TAG}|" base/deployment.yaml
+    - git config user.name "GitLab CI"
+    - git config user.email "gitlab-ci@example.local"
+    - git add base/deployment.yaml
+    - git commit -m "Update image to ${IMAGE_TAG}"
+    - git push origin main
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
