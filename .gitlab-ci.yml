@@ -32,21 +32,35 @@ push_image:
     - if: '$CI_COMMIT_BRANCH'
 
 
-
 update_gitops:
   stage: push
-  before_script:
-    - sudo apt-get update
-    - sudo apt-get install -y git
   script:
+    - echo "Updating GitOps repository..."
+    - echo "IMAGE: ${CI_REGISTRY_IMAGE}:${IMAGE_TAG}"
+
     - git clone "http://${GITOPS_USER}:${GITOPS_TOKEN}@gitlab.home.arpa/devops-assignment/devops-app-gitops.git"
+
     - cd devops-app-gitops
-    - sed -i "s|REPLACE_IMAGE|${CI_REGISTRY_IMAGE}:${IMAGE_TAG}|" base/deployment.yaml
+
+    - echo "Before update:"
+    - grep -n "image:" base/deployment.yaml
+
+    - sed -i "s|REPLACE_IMAGE|${CI_REGISTRY_IMAGE}:${IMAGE_TAG}|g" base/deployment.yaml
+
+    - echo "After update:"
+    - grep -n "image:" base/deployment.yaml
+
+    - grep -q "REPLACE_IMAGE" base/deployment.yaml && { echo "ERROR: Image placeholder was not replaced"; exit 1; } || true
+
     - git config user.name "GitLab CI"
     - git config user.email "gitlab-ci@example.local"
+
     - git add base/deployment.yaml
+    - git diff --cached
+
     - git commit -m "Update image to ${IMAGE_TAG}"
     - git push origin main
+
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
 
