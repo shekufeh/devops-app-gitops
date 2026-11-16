@@ -4,6 +4,7 @@ namespace: devops-app
 resources:
   - namespace.yaml
   - configmap.yaml
+  - prune-test.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
