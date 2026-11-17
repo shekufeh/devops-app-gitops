@@ -1,46 +1,83 @@
-# DevOps Assignment – Handover
+# DevOps Assignment – Project Handover
 
 ## 1. Project Overview
 
-This project demonstrates a CI/CD and GitOps workflow using GitLab CI, Docker, Kubernetes (k3d), and Argo CD.
+This project demonstrates an automated CI/CD and GitOps workflow using GitLab CI/CD, Docker, Kubernetes (k3d), and Argo CD.
 
 The application source code and Kubernetes deployment manifests are maintained in separate Git repositories.
 
+The CI/CD workflow runs on a self-hosted GitLab instance. GitHub repositories are used to publish the project source code and GitOps manifests for evaluation.
+
 ## 2. Repositories
 
-**Application repository**
+### GitHub Repositories (Submission)
+
+**Source Repository:**
+
+https://github.com/shekufeh/devops-app
+
+**GitOps Repository:**
+
+https://github.com/shekufeh/devops-app-gitops
+
+Note: The final project updates are pending synchronization to GitHub at the time of preparing this document.
+
+### Internal GitLab Repositories
+
+**Application Repository:**
 
 `http://gitlab.home.arpa/devops-assignment/devops-app.git`
 
-**GitOps repository**
+**GitOps Repository:**
 
 `http://gitlab.home.arpa/devops-assignment/devops-app-gitops.git`
+
+The internal GitLab repositories are used by the CI/CD workflow.
 
 ## 3. Architecture
 
 The deployment workflow is:
 
-1. Developer pushes application code to the source repository.
-2. GitLab CI runs application tests.
-3. GitLab CI builds the Docker image.
-4. The image is pushed to the GitLab Container Registry.
-5. The pipeline updates the image tag in the GitOps repository.
-6. Argo CD detects the GitOps change.
-7. Argo CD synchronizes the desired state with the Kubernetes cluster.
+1. Developer pushes application code to the internal GitLab source repository.
+2. GitLab CI/CD triggers the pipeline.
+3. The Test stage validates the application.
+4. The Build stage builds a Docker image.
+5. The Push stage publishes the image to GitLab Container Registry.
+6. The pipeline updates the image tag in the internal GitLab GitOps repository.
+7. Argo CD detects changes in the GitOps repository.
+8. Argo CD synchronizes the desired state with the Kubernetes cluster.
 
 ## 4. CI/CD Pipeline
 
-The GitLab CI pipeline contains the following stages:
+The GitLab CI/CD pipeline contains the following stages:
 
-- **Test:** Runs application validation.
+- **Test:** Runs application validation and tests.
 - **Build:** Builds the Docker image.
 - **Push:** Pushes the image to GitLab Container Registry and updates the GitOps repository.
 
 The Docker image is tagged using `CI_COMMIT_SHA`.
 
-The pipeline updates the GitOps repository automatically. Kubernetes deployment is managed by Argo CD, not directly by GitLab CI.
+The pipeline automatically updates the GitOps repository with the newly built image tag.
 
-## 5. Kubernetes Deployment
+Kubernetes deployment and reconciliation are managed by Argo CD, not directly by GitLab CI/CD.
+
+## 5. Container Registry
+
+The project uses GitLab Container Registry.
+
+**Registry hostname:**
+
+`gitlab.home.arpa:5050`
+
+**Registry IP address:**
+
+`192.168.130.20`
+
+The registry is hosted in the internal lab environment and is used by the CI/CD pipeline to publish application images.
+
+Kubernetes uses an image pull Secret named `gitlab-registry` to authenticate when pulling private images.
+
+## 6. Kubernetes Deployment
 
 The application is deployed in the `devops-app` namespace.
 
@@ -50,7 +87,7 @@ Kubernetes resources:
 - Service: `devops-app` (ClusterIP)
 - Ingress: `devops-app`
 - ConfigMap: `devops-app-config`
-- Image pull Secret: `gitlab-registry`
+- Image Pull Secret: `gitlab-registry`
 
 Deployment configuration:
 
@@ -72,13 +109,11 @@ Ingress hostname:
 
 Ingress controller: Traefik.
 
-## 6. Argo CD Configuration
+## 7. Argo CD Configuration
 
 Argo CD Application: `devops-app`
 
-Source repository:
-
-`devops-app-gitops`
+Source repository: Internal GitLab GitOps repository.
 
 Target revision: `main`
 
@@ -92,71 +127,27 @@ Automated synchronization is enabled:
 - `selfHeal: true`
 - `CreateNamespace=true`
 
-## 7. Validation and Testing
+Argo CD continuously monitors the GitOps repository and reconciles the Kubernetes cluster with the declared desired state.
 
-The following tests were performed:
+## 8. Validation and Testing
 
-### Deployment Health
+The following tests were performed successfully.
 
-Both application replicas reached `Running` and `Ready` state.
+### 8.1 Deployment Health
+
+Both application replicas reached `Running` and `Ready` states.
 
 Argo CD reported:
 
-- Sync status: Synced
-- Health status: Healthy
+- Sync status: `Synced`
+- Health status: `Healthy`
 
-### Self-Healing Test
+### 8.2 Self-Healing Test
 
 The Deployment was manually scaled from 2 replicas to 1.
 
-Argo CD detected the live-state drift and restored the desired replica count to 2.
+Argo CD detected the live-state drift and automatically restored the desired replica count to 2.
 
-### Prune Test
+### 8.3 Prune Test
 
-A temporary ConfigMap was added to the GitOps repository and successfully created by Argo CD.
-
-The ConfigMap was then removed from Git. With pruning enabled, Argo CD automatically deleted the ConfigMap from the Kubernetes cluster.
-
-The Application returned to `Synced` and `Healthy`.
-
-## 8. Useful Commands
-
-Check application pods:
-
-```bash
-kubectl get pods -n devops-app -o wide
-```
-
-Check Deployment:
-
-```bash
-kubectl get deployment -n devops-app
-```
-
-Check Service and Ingress:
-
-```bash
-kubectl get svc,ingress -n devops-app
-```
-
-Check Argo CD Application:
-
-```bash
-kubectl get application devops-app -n argocd
-```
-
-Check Argo CD synchronization policy:
-
-```bash
-kubectl get application devops-app -n argocd \
-  -o jsonpath='{.spec.syncPolicy}{"\n"}'
-```
-
-## 9. Notes
-
-- GitLab CI is responsible for testing, building, publishing images, and updating GitOps manifests.
-- Argo CD is responsible for deploying and reconciling Kubernetes resources.
-- Registry credentials are stored in a Kubernetes image pull Secret.
-- No registry credentials or access tokens should be committed to Git.
-
-
+A temporary ConfigMap was added to the Git
